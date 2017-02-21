@@ -1,0 +1,379 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <title>DASH Payment Service Test</title>
+
+    <link rel='shortcut icon' type='image/x-icon' href='favicon.ico'/>
+    <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.0/themes/smoothness/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.1.0.js" integrity="sha256-slogkvB1K3VOkzAI8QITxV3VzpOnkeNVsKvtkYLMjfk=" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://dev-test.dash.org:3001/socket.io/socket.io.js"></script>
+    <script src="js/iziModal.min.js" type="text/javascript"></script>
+    <script src="js/jquery-qrcode.min.js"></script>
+    <script src="js/checkout.js"></script>
+
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/master.css">
+    <link rel="stylesheet" href="css/iziModal.min.css">
+
+    <script type="text/javascript">
+
+
+        receivers=[];
+
+        //var socketip="https://dev-test.dash.org:3001/";
+        var socketip="http://195.141.143.55:3001";
+        var baseurl=window.location.protocol + "//" + window.location.host;
+        var paymentprotocolserver=baseurl + '/pp/getpaymentrequesturi.php';
+
+        $(document).ready(function(){
+
+            $('#formSubmit').click(function(){document.getElementById('response').placeholder="waiting for response...";
+
+                createReceiver();document.getElementById('websocketCallback').value="";
+
+                document.getElementById('websocketCallback').placeholder="waiting for websocket callback...";
+
+            });
+
+            var config = {
+                paymentWindowOpts: {
+                    headerColor: '#1c75bc',
+                    title:'Send DASH to ...',
+                    overlayClose: false,
+                    width: 500,
+                    height: 500,
+                    padding: 25,
+                    radius: 1,
+                    autoOpen: false,
+                    overlayColor: 'rgba(0, 0, 0, 0.6)'
+                },
+                network: 'testnet',
+                provider: 'https://dev-test.dash.org',
+                transactionOpts: {
+                    confirmations: 1,
+                    pendingNotificationInterval: 5,
+                    pollingInterval: 2000
+                },
+                functions: {
+                    transactionPending: transactionPending,
+                    transactionReceived: transactionReceived,
+                    transactionConfirmed: transactionConfirmed
+                }
+            };
+            function transactionPending(opts) {
+                console.log('transactionPending');
+                var conftext = "Waiting for " + opts.confirmations + " confirmations...";
+                jQuery('#checkout_status').html('Transaction was sent<br><span style="font-size:.8em">' + conftext);
+                $('#inv-click').text('Payment pending');
+
+            }
+            function transactionReceived(opts, res) {
+                console.log('transactionReceived');
+                var conftext = "(" + res.confirmations + "/" + opts.confirmations + " confirmations)";
+                jQuery('#checkout_status').html('Transaction Received<br><span style="font-size:.8em">' + conftext);
+                $('#inv-click').text('Payment pending');
+
+            }
+            function transactionConfirmed(opts, res) {
+                console.log('transactionConfirmed');
+                var conftext = ""
+                if(res.txlock) {
+                    conftext = "(InstantSend)";
+                }
+                else {
+                    conftext = "(" + res.confirmations + "/" + opts.confirmations + " confirmations)";
+                }
+                jQuery('#checkout_status').html('Transaction Confirmed<br><span style="font-size:.8em">' + conftext);
+                $('#inv-click').text('Invoice paid');
+
+            }
+
+            jQuery('#modal').iziModal(config.paymentWindowOpts);
+
+            function createReceiver(){
+
+                data={"api_key":'uvhzqvtzHdzoxQIP+AKNDw==',
+                    "currency":document.getElementById('createReceiver_currency').value,
+                    "amount":document.getElementById('createReceiver_amount').value,
+                    "username":document.getElementById('createReceiver_username').value,
+                    "description":document.getElementById('createReceiver_description').value,
+                    "callbackUrl":document.getElementById('createReceiver_callbackUrl').value};
+
+
+                $.ajax({
+                    type:"POST",
+                    url:document.getElementById('createReceiver_apiEndpoint').value,
+                    data:JSON.stringify(data),
+                    contentType:"application/json; charset=utf-8",
+ //                   xhrFields: {
+ //                       withCredentials: true
+ //                   },
+                    crossDomain:true,dataType:"json",
+                    success:function(data,status,jqXHR){
+                        receivers.push(data.receiver_id);
+                        document.getElementById('response').innerHTML=JSON.stringify(data);
+
+                        //fill paymentReceiver with data
+                        var paymentReceiver = {
+                            "receiver_id": data.receiver_id,
+                            "username": data.username,
+                            "dash_payment_address": data.dash_payment_address,
+                            "amount_fiat": data.amount_fiat,
+                            "type_fiat": data.type_fiat,
+                            "base_fiat": data.base_fiat,
+                            "amount_duffs": data.amount_duffs,
+                            "description": data.description
+                        };
+
+
+                        //create and get payment request url for clickable link
+                        //var getPaymentRequestUrl = paymentprotocolserver + "?merchant=None&address1=XuxSxhYGRYvoiTKUY6gJ6HGSJjMn6ib1Uw&amount1=" + parseFloat(data.amount_duffs / 100000000).toFixed(2) + "&time=0&expires=never&memo=" + data.description + "&payment_url=on&ACK_message=hello+you%21&produce_uri=on&submit=Create+Payment+Request";
+                        var getPaymentRequestUrl = paymentprotocolserver + "?merchant=None&address1=" + data.dash_payment_address + "&amount1=" + parseFloat(data.amount_duffs / 100000000).toFixed(2) + "&time=0&expires=never&memo=" + data.description + "&payment_url=on&ACK_message=hello+you%21&produce_uri=on&submit=Create+Payment+Request";
+                        console.log("getPaymentRequestUrl: " + getPaymentRequestUrl);
+
+                        $.ajax({
+                            type:"GET",
+                            url:getPaymentRequestUrl,
+                            crossDomain:true,dataType:"text",
+ //                           xhrFields: {
+ //                               withCredentials: true
+ //                           },
+                            success:function(data,status,jqXHR){
+                                console.log( "success" );
+                                var uri = data;
+                                console.log("uri: " + uri)
+                                $("#inv-click").attr("href", uri);
+                            },
+                            error:function(jqXHR,status,error){console.log(jqXHR);
+                                //var err=eval("("+jqXHR.responseText+")");
+                                console.log(jqXHR.statusText);
+                                console.log(jqXHR.status);
+                                //alert(err.Message);
+                            }});
+
+                        var checkout = new Checkout();
+
+                        jQuery('.trigger').click(function (event) {
+                            event.preventDefault();
+                            $('#modal').iziModal('open');
+                        });
+                        // Initialize Payment Receiver and Web Socket Listener
+                        console.log('now init...');
+                        var numOfConfs = $('#option_confirmations').val();
+                        config.transactionOpts.confirmations=numOfConfs;
+                        checkout.init(config, paymentReceiver, socketip, function(err, checkout) {
+                            // checkout has initialized and is listening
+                            console.log('initialized!');
+                            checkout.displayQRCode(function(err, res) {
+                                console.log(res);
+                                jQuery('#qrcode').qrcode({render:'image',
+                                    text: res,
+                                    ecLevel: 'L',
+                                    size: "203"});
+                                jQuery('#formatted_dash').text(parseFloat(paymentReceiver.amount_duffs / 100000000).toFixed(2) + ' DASH');
+                                jQuery('#formLabel_address').text(paymentReceiver.dash_payment_address);
+                                checkout.paymentWindowActive = true;
+                            });
+                        });
+
+                        //create invoice button on the fly
+
+
+
+                        $('#invoice').show();
+                    },
+                    error:function(jqXHR,status,error){console.log(jqXHR);
+                        //var err=eval("("+jqXHR.responseText+")");
+                        console.log(jqXHR.statusText);
+                        console.log(jqXHR.status);
+                        //alert(err.Message);
+                    }});
+            }
+
+        });
+
+
+
+    </script>
+
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row" id="header">
+        <div class="col-md-2">
+            <img id="dash_logo" src="images/dash_logo.png" alt="dash backend tools">
+            <div class="row">
+                <div class="col-xs-12">
+                    <h4><i>Backend Tools</i></h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-12">
+            Create Invoice
+        </div>
+    </div>
+
+
+
+    <div class="row">
+
+        <div class="col-lg-2 col-md-2 col-md-push-8">
+            <div id="side-header">
+                <div class="col-xs-12">
+                    <div>
+                        <h3 class="header_title">DASH Create Invoice</h3>
+                        <p id="side_header_description" class="header_description">DASH Create Invoice let's you define all the relevant parameters to bill to your customer. It creates a payment request, which can be easily paid by scanning or clicking on the pop-up invoice window.</p>
+
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="col-lg-6 col-md-6 col-md-offset-2 col-md-pull-2 col-sm-12 col-sm-offset-0 col-xs-12 col-xs-offset-0">
+
+            <form>
+                <div class="form-group">
+                    <label for="createReceiver_currency">currency:</label>
+                    <input type="text" class="form-control" id="createReceiver_currency" value="USD" placeholder="USD">
+                </div>
+                <div class="form-group">
+                    <label for="createReceiver_amount">amount:</label>
+                    <input type="text" class="form-control" id="createReceiver_amount" value="100.07" placeholder="100.07">
+                </div>
+                <div class="form-group">
+                    <label for="createReceiver_username">username:</label>
+                    <input type="text" class="form-control" id="createReceiver_username" value="user@example.com" placeholder="user@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="createReceiver_description">description:</label>
+                    <input type="text" class="form-control" id="createReceiver_description" value="3 Month Subscription" placeholder="3 Month Subscription">
+                </div>
+                <div class="form-group">
+                    <label for="start_epoch">confirmations:</label>
+                    <select class="form-control" id="option_confirmations">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="createReceiver_callbackUrl">callbackUrl:</label>
+                    <input type="text" class="form-control" id="createReceiver_callbackUrl" value="http://195.141.143.55:3001/dash-payment-processor/cb" placeholder="https://dev-test.dash.org:3001/dash-payment-processor/cb">
+                </div>
+                <hr/>
+                <div class="form-group">
+                    <label for="createReceiver_apiEndpoint">API Endpoint:</label>
+                    <input type="text" class="form-control" id="createReceiver_apiEndpoint" value="http://195.141.143.55:3001/dash-payment-processor/createReceiver" placeholder="https://dev-test.dash.org:3001/dash-payment-processor/createReceiver">
+                </div>
+
+                <div type="submit" class="btn btn-primary" id="formSubmit">Create Invoice</div>
+            </form>
+
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-xs-6 col-xs-offset-2" style="text-align:center;">
+
+            <!-- Trigger to open Modal -->
+            <button id="invoice" type="button" class="btn btn-primary trigger" style="display:none;">Open Invoice</button>
+
+        </div>
+    </div>
+    <div class="row" style="margin-top:4em;">
+        <div class="col-xs-6 col-xs-offset-2">
+
+            <form>
+                <div class="form-group">
+                    <label for="response">response:</label>
+                    <textarea class="form-control" id="response" rows="4" placeholder="no request submitted yet..."></textarea>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <div class="row" style="margin-top:1em;">
+        <div class="col-xs-6 col-xs-offset-2">
+
+            <form>
+                <div class="form-group">
+                    <label for="websocketCallback">websocket callback:</label>
+                    <textarea class="form-control" id="websocketCallback" rows="15" placeholder="no websocket responses yet..."></textarea>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <div class="col-xs-12">
+
+
+        <div class="row">
+
+            <!-- Modal structure -->
+            <div id="modal">
+                <!-- Page content -->
+                <div class="row">
+                    <div class="col-xs-12 col-md-6">
+
+                        <div id="qrcode"></div>
+
+                    </div>
+
+                    <div class="col-xs-12 col-md-6">
+
+                        <div class="form-group row">
+                            <label class="col-form-label formLabel formLabel_amount" id="formatted_dash">Amount</label>
+                        </div>
+
+                        <br />
+
+                        <div class="form-group row">
+                            <label class="col-form-label formLabel" id="formatted_status">Order Status</label>
+                            <span class="formValue" id="checkout_status">Pending</span>
+                        </div>
+                        <div>
+                            <!-- Trigger to open Modal -->
+                            <button id="click2pay" type="button" class="btn btn-primary"><a style="color: #ffffff" id="inv-click" href="dash:yg4eCGoKAapmzPCuZoxB5oNqCJhzGreMa6?amount=50&label=Luke-Jr&message=Donation%20for%20project%20xyz">Scan QR code or click to pay</a></button>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-xs-12">
+
+                        <div id="address"><strong>Address: </strong><span id="formLabel_address" id="formatted_address"></span></div>
+
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+</body>
+</html>
