@@ -89,7 +89,7 @@ If you change the form, you must click the Create Payment Request button to gene
 </p>
 <p><a href="bitcoin:yaVStwYbL6eQs3o23SxNxBdgxC32sn8nUo?r=https%3A%2F%2Ffdash.org%2F%7Evcofresi%2Ff.php%3Fh%3D89ea2e87e5b36a000000000000000000&amount=0.1">Invalid request URI</a>
 </p>
-<p><a href="dash:yQ3ugc5mzNcGB3CwpiJ7mYEs9qkAXJaLSq?r=http://invoice.dash.do/pp/f.php?h=43fa731c900e4390e5cdafbc994063ac&amount=25">Test URI</a>
+<p><a href="dash:yN4cVQ4sXJtWBRiSZc5Ys2MdcN9NJhKwC8?r=http://invoice.dash.do/pp/f.php?h=d84b737dae8fc01500f9853266c61a38&amount=1">Test URI</a>
 </p>
 </div>
 
