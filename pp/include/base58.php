@@ -74,6 +74,7 @@ function address_to_script($btcaddress)
         // Pay to public key:
         // DUP HASH160 push-0x14-bytes ...hash... EQUALVERIFY CHECKSIG
         $script = "\x76\xa9\x14".$hash."\x88\xac";
+        break;
     break;
     case 196:
         $testnet = true; // ... fall through
