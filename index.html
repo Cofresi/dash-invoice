@@ -27,7 +27,7 @@
         receivers=[];
 
         //var socketip="https://dev-test.dash.org:3001/";
-        var socketip="http://195.141.143.55:3001";
+        var socketip="http://195.141.143.51:3001";
         var baseurl=window.location.protocol + "//" + window.location.host;
         var paymentprotocolserver=baseurl + '/pp/getpaymentrequesturi.php';
 
@@ -274,12 +274,12 @@
                 </div>
                 <div class="form-group">
                     <label for="createReceiver_callbackUrl">callbackUrl:</label>
-                    <input type="text" class="form-control" id="createReceiver_callbackUrl" value="http://195.141.143.55:3001/dash-payment-processor/cb" placeholder="https://dev-test.dash.org:3001/dash-payment-processor/cb">
+                    <input type="text" class="form-control" id="createReceiver_callbackUrl" value="http://195.141.143.51:3001/dash-payment-processor/cb" placeholder="https://dev-test.dash.org:3001/dash-payment-processor/cb">
                 </div>
                 <hr/>
                 <div class="form-group">
                     <label for="createReceiver_apiEndpoint">API Endpoint:</label>
-                    <input type="text" class="form-control" id="createReceiver_apiEndpoint" value="http://195.141.143.55:3001/dash-payment-processor/createReceiver" placeholder="https://dev-test.dash.org:3001/dash-payment-processor/createReceiver">
+                    <input type="text" class="form-control" id="createReceiver_apiEndpoint" value="http://195.141.143.51:3001/dash-payment-processor/createReceiver" placeholder="https://dev-test.dash.org:3001/dash-payment-processor/createReceiver">
                 </div>
 
                 <div type="submit" class="btn btn-primary" id="formSubmit">Create Invoice</div>
