@@ -132,10 +132,12 @@
                         };
 
 
+                        /* TODO: get copay to work with DASH uris, so we can implement a two way communication between merchant and consumer exchanging the memo fields of the payment protocol
                         //create and get payment request url for clickable link
                         //var getPaymentRequestUrl = paymentprotocolserver + "?merchant=None&address1=XuxSxhYGRYvoiTKUY6gJ6HGSJjMn6ib1Uw&amount1=" + parseFloat(data.amount_duffs / 100000000).toFixed(2) + "&time=0&expires=never&memo=" + data.description + "&payment_url=on&ACK_message=hello+you%21&produce_uri=on&submit=Create+Payment+Request";
                         var getPaymentRequestUrl = paymentprotocolserver + "?merchant=None&address1=" + data.dash_payment_address + "&amount1=" + parseFloat(data.amount_duffs / 100000000).toFixed(2) + "&time=0&expires=never&memo=" + data.description + "&payment_url=on&ACK_message=hello+you%21&produce_uri=on&submit=Create+Payment+Request";
                         console.log("getPaymentRequestUrl: " + getPaymentRequestUrl);
+
 
                         $.ajax({
                             type:"GET",
@@ -156,7 +158,13 @@
                                 console.log(jqXHR.status);
                                 //alert(err.Message);
                             }});
-
+                        */
+                        var IS = +$('#createReceiver_IS').is( ':checked' )
+                        console.log("IS=" + IS);
+                        var uri = encodeURI("dash:" + data.dash_payment_address + "?amount=" + parseFloat(data.amount_duffs / 100000000).toFixed(2) + "&label=" + data.description + "&message=" + $('#createReceiver_message').val() + "&IS=" + IS);
+                        //uri="dash:yaVStwYbL6eQs3o23SxNxBdgxC32sn8nUo?amount=0.01&amp;label=Faucet";
+                        console.log("uri: " + uri)
+                        $("#inv-click").attr("href", uri);
                         var checkout = new Checkout();
 
                         jQuery('.trigger').click(function (event) {
@@ -165,12 +173,12 @@
                         });
                         // Initialize Payment Receiver and Web Socket Listener
                         console.log('now init...');
-                        var numOfConfs = $('#option_confirmations').val();
+                        var numOfConfs = parseInt($('#option_confirmations').val());
                         config.transactionOpts.confirmations=numOfConfs;
                         checkout.init(config, paymentReceiver, socketip, function(err, checkout) {
                             // checkout has initialized and is listening
                             console.log('initialized!');
-                            checkout.displayQRCode(function(err, res) {
+                            checkout.displayQRCode(uri, function(err, res) {
                                 console.log(res);
                                 jQuery('#qrcode').qrcode({render:'image',
                                     text: res,
@@ -181,9 +189,6 @@
                                 checkout.paymentWindowActive = true;
                             });
                         });
-
-                        //create invoice button on the fly
-
 
 
                         $('#invoice').show();
@@ -234,8 +239,6 @@
                         <h3 class="header_title">DASH Create Invoice</h3>
                         <p id="side_header_description" class="header_description">DASH Create Invoice let's you define all the relevant parameters to bill to your customer. It creates a payment request, which can be easily paid by scanning or clicking on the pop-up invoice window.</p>
 
-
-
                     </div>
                 </div>
             </div>
@@ -262,7 +265,15 @@
                     <input type="text" class="form-control" id="createReceiver_description" value="3 Month Subscription" placeholder="3 Month Subscription">
                 </div>
                 <div class="form-group">
-                    <label for="start_epoch">confirmations:</label>
+                    <label for="createReceiver_description">optional message to customer:</label>
+                    <input type="text" class="form-control" id="createReceiver_message" value="pay this 3 Month Subscription!" placeholder="pay this 3 Month Subscription!">
+                </div>
+                <div class="form-group">
+                    <label for="createReceiver_IS">request InstantSend:</label>
+                    <input type="checkbox" id="createReceiver_IS"/>
+                </div>
+                <div class="form-group">
+                    <label for="start_epoch">expected confirmations:</label>
                     <select class="form-control" id="option_confirmations">
                         <option value="1">1</option>
                         <option value="2">2</option>

@@ -367,14 +367,10 @@
     };
     
     // display QR code
-    Checkout.prototype.displayQRCode = function(cb) {
+    Checkout.prototype.displayQRCode = function(uri, cb) {
 
-        var paymentReceiver = this._paymentReceiver;
 
-        var address = paymentReceiver.dash_payment_address;
-        var amount = parseFloat(paymentReceiver.amount_duffs)/100000000;
-
-        var QRCode = 'dash:'+address+'?amount='+amount;
+        var QRCode = uri;
 
         cb(null, QRCode);
     };
